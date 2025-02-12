@@ -1,59 +1,142 @@
-/**
- * 2C = Two of Clubs
- * 2D = Two of Diamonds
- * 2H = Two of Hearts
- * 2S = Two of Swords
- */
+(() => {
+    'use strict';
 
-let deck = [];
+    // Global variables
+    let deck = [];
+    const types = ['C', 'D', 'H', 'S'],
+        specials = ['A', 'J', 'Q', 'K'];
 
-const types = ['C', 'D', 'H', 'S'];
+    let playerPoints = 0,
+        computerPoints = 0;
 
-const specials = ['A', 'J', 'Q', 'K'];
+    // HTML references
+    const btnNewGame = document.querySelector('#btn-new-game'),
+        btnRequestCard = document.querySelector('#btn-request-card'),
+        btnStop = document.querySelector('#btn-stop');
 
-// Función que crea un nuevo deck
-const createDeck = () => {
-    for (let i = 2; i <= 10; i++) {
+    const playerCards = document.querySelector('#player-cards')
+        computerCards = document.querySelector('#computer-cards'),
+        smallTags = document.querySelectorAll('small');
+
+    // Function that initializes the game 
+    const initGame = () => {
+        createDeck();
+    };
+
+    // Función que crea un nuevo deck
+    const createDeck = () => {
+        deck = [];
+
+        for (let i = 2; i <= 10; i++) {
+            for (let type of types) {
+                deck.push(`${i}${type}`);
+            }
+        }
+
         for (let type of types) {
-            deck.push(`${i}${type}`);
+            for (let special of specials) {
+                deck.push(`${special}${type}`);
+            }
         }
-    }
 
-    for (let type of types) {
-        for (let special of specials) {
-            deck.push(`${special}${type}`);
+        return _.shuffle(deck);
+    };
+
+    // Función que permite tomar una carta
+    const requestCard = () => {
+        if (deck.length === 0) {
+            throw 'No cards on deck';
         }
-    }
 
-    deck = _.shuffle(deck);
+        return deck.pop();
+    };
 
-    return deck;
-};
+    // requestCard();
 
-createDeck();
+    const cardValue = (card) => {
+        const value = card.substring(0, card.length - 1);
+        
+        return isNaN(value)
+                ? (value === 'A' ? 11 : 10)
+                : (value * 1);
+    };
 
-// Función que permite tomar una carta
-const requestCard = () => {
-    if (deck.length === 0) {
-        throw 'No cards on deck';
-    }
+    const computerTurn = (minPoints) => {
+        do {
+            const card = requestCard();
+            computerPoints += cardValue(card);
 
-    const card = deck.pop();
+            smallTags[1].innerText = computerPoints;
 
-    console.log(`Card selected ${card}`);
+            const imgCard = document.createElement('img');
+            imgCard.src = `assets/cards/${card}.png`;
+            imgCard.classList.add('blackjack-card');
+            
+            computerCards.append(imgCard);
 
-    return card;
-};
+            if (minPoints > 21) {
+                break;
+            }
+        } while ((computerPoints < minPoints) && (minPoints <= 21));
 
-// requestCard();
+        setTimeout(() => {
+            if (computerPoints === minPoints) {
+                alert('Draw');
+            } else if (minPoints > 21) {
+                alert('Computer wins');
+            } else if (computerPoints > 21) {
+                alert('Player wins');
+            } else {
+                alert('Computer wins');
+            }
+        }, 100);
+    };
 
-const cardValue = (card) => {
-    const value = card.substring(0, card.length - 1);
-    
-    return isNaN(value)
-            ? (value === 'A' ? 11 : 10)
-            : (value * 1);
-};
+    // Events
+    btnRequestCard.addEventListener('click', () => {
+        const card = requestCard();
+        playerPoints += cardValue(card);
 
-const value = cardValue(requestCard());
-console.log(value);
+        smallTags[0].innerText = playerPoints;
+
+        const imgCard = document.createElement('img');
+        imgCard.src = `assets/cards/${card}.png`;
+        imgCard.classList.add('blackjack-card');
+        
+        playerCards.append(imgCard);
+
+        if (playerPoints > 21) {
+            btnRequestCard.disabled = true;
+            btnStop.disabled = true;
+            computerTurn(playerPoints);
+        } else if (playerPoints === 21) {
+            btnRequestCard.disabled = true;
+            btnStop.disabled = true;
+            computerTurn(playerPoints);
+        }
+    });
+
+    btnStop.addEventListener('click', () => {
+        btnRequestCard.disabled = true;
+        btnStop.disabled = true;
+
+        computerTurn(playerPoints);
+    });
+
+    btnNewGame.addEventListener('click', () => {
+        deck = [];
+        createDeck();
+
+        playerPoints = 0;
+        computerPoints = 0;
+
+        smallTags[0].innerText = 0;
+        smallTags[1].innerText = 0;
+
+        playerCards.innerHTML = '';
+        computerCards.innerHTML = '';
+
+        btnRequestCard.disabled = false;
+        btnStop.disabled = false;
+    });
+})();
