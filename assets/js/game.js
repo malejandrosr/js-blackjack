@@ -1,4 +1,4 @@
-(() => {
+const myModule = (() => {
     'use strict';
 
     // Global variables
@@ -6,21 +6,31 @@
     const types = ['C', 'D', 'H', 'S'],
         specials = ['A', 'J', 'Q', 'K'];
 
-    let playerPoints = 0,
-        computerPoints = 0;
+    let playersPoints = [];
 
     // HTML references
     const btnNewGame = document.querySelector('#btn-new-game'),
         btnRequestCard = document.querySelector('#btn-request-card'),
         btnStop = document.querySelector('#btn-stop');
 
-    const playerCards = document.querySelector('#player-cards')
-        computerCards = document.querySelector('#computer-cards'),
+    const cardsDiv = document.querySelectorAll('.cards-div'),
         smallTags = document.querySelectorAll('small');
 
-    // Function that initializes the game 
-    const initGame = () => {
-        createDeck();
+    // Función que inicializa el juego
+    const initGame = (playersNumber = 2) => {
+        deck = createDeck();
+
+        playersPoints = [];
+        for (let i = 0; i < playersNumber; i++) {
+            playersPoints.push(0);
+        }
+
+        smallTags.forEach((smallTag) => smallTag.innerText = 0);
+
+        cardsDiv.forEach((cardsDiv) => cardsDiv.innerHTML = '');
+
+        btnRequestCard.disabled = false;
+        btnStop.disabled = false;
     };
 
     // Función que crea un nuevo deck
@@ -51,8 +61,7 @@
         return deck.pop();
     };
 
-    // requestCard();
-
+    // Función que retorna el valor de una carta
     const cardValue = (card) => {
         const value = card.substring(0, card.length - 1);
         
@@ -61,23 +70,26 @@
                 : (value * 1);
     };
 
-    const computerTurn = (minPoints) => {
-        do {
-            const card = requestCard();
-            computerPoints += cardValue(card);
+    // Función que permite acumular puntos
+    // Turno: 0 = player, 1 = computer
+    const comulatePoints = (card, playerTurn) => {
+        playersPoints[playerTurn] += cardValue(card);
 
-            smallTags[1].innerText = computerPoints;
+        smallTags[playerTurn].innerText = playersPoints[playerTurn];
 
-            const imgCard = document.createElement('img');
-            imgCard.src = `assets/cards/${card}.png`;
-            imgCard.classList.add('blackjack-card');
-            
-            computerCards.append(imgCard);
+        return playersPoints[playerTurn];
+    };
 
-            if (minPoints > 21) {
-                break;
-            }
-        } while ((computerPoints < minPoints) && (minPoints <= 21));
+    const createCard = (card, playerTurn) => {
+        const imgCard = document.createElement('img');
+        imgCard.src = `assets/cards/${card}.png`;
+        imgCard.classList.add('blackjack-card');
+        
+        cardsDiv[playerTurn].append(imgCard);
+    };
+
+    const chooseWinner = () => {
+        const [minPoints, computerPoints] = playersPoints;
 
         setTimeout(() => {
             if (computerPoints === minPoints) {
@@ -92,18 +104,28 @@
         }, 100);
     };
 
+    // Función que permite que la computadora juegue
+    const computerTurn = (minPoints) => {
+        let computerPoints = 0;
+
+        do {
+            const card = requestCard();
+
+            computerPoints = comulatePoints(card, playersPoints.length - 1);
+
+            createCard(card, playersPoints.length - 1);
+        } while ((computerPoints < minPoints) && (minPoints <= 21));
+
+        chooseWinner();
+    };
+
     // Events
     btnRequestCard.addEventListener('click', () => {
         const card = requestCard();
-        playerPoints += cardValue(card);
 
-        smallTags[0].innerText = playerPoints;
+        const playerPoints = comulatePoints(card, 0);
 
-        const imgCard = document.createElement('img');
-        imgCard.src = `assets/cards/${card}.png`;
-        imgCard.classList.add('blackjack-card');
-        
-        playerCards.append(imgCard);
+        createCard(card, 0);
 
         if (playerPoints > 21) {
             btnRequestCard.disabled = true;
@@ -120,23 +142,14 @@
         btnRequestCard.disabled = true;
         btnStop.disabled = true;
 
-        computerTurn(playerPoints);
+        computerTurn(playersPoints[0]);
     });
 
     btnNewGame.addEventListener('click', () => {
-        deck = [];
-        createDeck();
-
-        playerPoints = 0;
-        computerPoints = 0;
-
-        smallTags[0].innerText = 0;
-        smallTags[1].innerText = 0;
-
-        playerCards.innerHTML = '';
-        computerCards.innerHTML = '';
-
-        btnRequestCard.disabled = false;
-        btnStop.disabled = false;
+        initGame();
     });
+
+    return {
+        newGame: initGame,
+    };
 })();
